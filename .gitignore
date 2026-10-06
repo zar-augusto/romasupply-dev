@@ -1,0 +1,15 @@
+# Flutter
+build/
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+*.log
+
+# Firebase
+firebase_backend/functions/lib/
+firebase_backend/functions/node_modules/
+firebase-debug.log*
+
+# Mac
+.DS_Store

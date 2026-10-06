@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() { return request.auth != null; }
+    function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
+    function isAdmin() { return isAuthenticated() && request.auth.token.admin == true; }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+      match /variants/{variantId} { allow read: if true; allow write: if isAdmin(); }
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && !request.resource.data.keys().hasAny(['role']);
+      allow update: if isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+      allow delete: if isAdmin();
+    }
+
+    match /carts/{cartId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.user_id == request.auth.uid || cartId == request.auth.uid);
+      allow write: if isAuthenticated() && 
+                   (resource == null || resource.data.user_id == request.auth.uid) &&
+                   (!request.resource.data.keys().hasAny(['user_id']) || request.resource.data.user_id == request.auth.uid);
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && (resource.data.user_id == request.auth.uid || isAdmin());
+      allow write: if false; // Bloqueado: Creación exclusiva vía Cloud Functions
+    }
+
+    match /roma_club/{emailHash} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}
